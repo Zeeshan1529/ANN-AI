@@ -28,7 +28,6 @@ class DemandPredictionInput(BaseModel):
 @router.post("/predict-demand")
 def predict_demand(data: DemandPredictionInput):
     try:
-        # encode categorical values
         day_encoded = day_encoder.transform([data.day])[0]
         meal_encoded = meal_encoder.transform([data.meal_type])[0]
 
@@ -57,10 +56,20 @@ def predict_demand(data: DemandPredictionInput):
         return {
             "predicted_attendance": prediction,
             "crowd_level": crowd_level,
-            "suggested_preparation_index": suggested_preparation_index
+            "suggested_preparation_index": suggested_preparation_index,
         }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Encoding error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@router.get("/admin-summary")
+def get_admin_summary():
+    return {
+        "top_issue": "Too Salty",
+        "sentiment_trend": "Negative feedback increased by 12% this week",
+        "waste_risk": "Medium",
+        "recommendation": "Reduce salt level in lunch meals and monitor waste for the next 2 serving cycles.",
+    }

@@ -255,7 +255,6 @@ const adminName =
 
   // ── Role Guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
 setMounted(true);
 
   const token = localStorage.getItem("access_token");
@@ -265,6 +264,14 @@ setMounted(true);
     router.replace("/login");
   }
 }, [router]);
+const [adminSummary, setAdminSummary] = useState<{
+  top_issue: string;
+  sentiment_trend: string;
+  waste_risk: string;
+  recommendation: string;
+} | null>(null);
+
+const [adminSummaryLoading, setAdminSummaryLoading] = useState(true);
 
   // ── Logout ──────────────────────────────────────────────────────────────────
   const handleLogout = () => {
@@ -276,6 +283,29 @@ setMounted(true);
       router.replace("/login");
     }, 600);
   };
+
+  useEffect(() => {
+  const fetchAdminSummary = async () => {
+    try {
+      setAdminSummaryLoading(true);
+
+      const res = await fetch(`${API_BASE}/ai/admin-summary`);
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch admin summary");
+      }
+
+      const data = await res.json();
+      setAdminSummary(data);
+    } catch (error) {
+      console.error("Admin summary error:", error);
+    } finally {
+      setAdminSummaryLoading(false);
+    }
+  };
+
+  fetchAdminSummary();
+}, []);
 
   if (!mounted) {
   return (
@@ -525,6 +555,53 @@ setMounted(true);
             </GlassCard>
           </motion.div>
         </div>
+
+        {/* ── AI Weekly Summary ───────────────────────────────────────────── */}
+<motion.div variants={fadeUp} initial="hidden" animate="show" className="mb-6">
+  <GlassCard className="p-6">
+    <SectionHeading icon={Cpu} title="AI Weekly Summary" accent="text-violet-400" />
+
+    {adminSummaryLoading ? (
+      <div className="text-sm text-white/40">Loading AI weekly summary...</div>
+    ) : adminSummary ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <p className="text-xs text-white/35 mb-1">Top Recurring Issue</p>
+          <p className="text-lg font-bold text-rose-300">{adminSummary.top_issue}</p>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <p className="text-xs text-white/35 mb-1">Sentiment Trend</p>
+          <p className="text-sm font-medium text-amber-300">{adminSummary.sentiment_trend}</p>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <p className="text-xs text-white/35 mb-1">Waste Risk</p>
+          <span
+            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${
+              adminSummary.waste_risk === "High"
+                ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                : adminSummary.waste_risk === "Medium"
+                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+            }`}
+          >
+            {adminSummary.waste_risk}
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.08] p-4">
+          <p className="text-xs text-white/35 mb-1">AI Recommendation</p>
+          <p className="text-sm text-violet-200 leading-relaxed">
+            {adminSummary.recommendation}
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div className="text-sm text-rose-300">Could not load AI weekly summary.</div>
+    )}
+  </GlassCard>
+</motion.div>
 
         {/* ── Bottom row: Controls + System Health ─────────────────────────── */}
         <motion.div

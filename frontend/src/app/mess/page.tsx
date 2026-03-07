@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useRouter } from "next/navigation";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
 import {
   Star,
   MessageCircle,
@@ -15,6 +14,8 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,13 @@ export default function MessDashboard() {
 } | null>(null);
 
 const [predictionLoading, setPredictionLoading] = useState(true);
+const [feedbackAnalysis, setFeedbackAnalysis] = useState<{
+  sentiment: string;
+  categories: string[];
+  severity: string;
+} | null>(null);
+
+const [feedbackAnalysisLoading, setFeedbackAnalysisLoading] = useState(true);
 
   const handleSubmit = () => {
     if (!wasteForm.quantity) return;
@@ -221,6 +229,39 @@ useEffect(() => {
   };
 
   fetchPrediction();
+}, []);
+
+useEffect(() => {
+  const fetchFeedbackAnalysis = async () => {
+    try {
+      setFeedbackAnalysisLoading(true);
+
+      const res = await fetch(`${API_BASE}/feedback/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rating: 1,
+          tags: ["Too Salty"],
+          comment: "Rice was undercooked and too salty",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch feedback analysis");
+      }
+
+      const data = await res.json();
+      setFeedbackAnalysis(data.ai_analysis);
+    } catch (error) {
+      console.error("Feedback AI analysis error:", error);
+    } finally {
+      setFeedbackAnalysisLoading(false);
+    }
+  };
+
+  fetchFeedbackAnalysis();
 }, []);
 
 useEffect(() => {
@@ -491,6 +532,72 @@ useEffect(() => {
       </div>
     ) : (
       <div className="text-sm text-rose-300">Could not load AI prediction.</div>
+    )}
+  </GlassCard>
+</motion.div>
+{/* AI Complaint Intelligence */}
+<motion.div variants={itemVariants}>
+  <GlassCard className="p-6">
+    <SectionHeading icon={MessageCircle} title="AI Complaint Intelligence" />
+
+    {feedbackAnalysisLoading ? (
+      <div className="text-sm text-white/40">Analyzing student feedback...</div>
+    ) : feedbackAnalysis ? (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-white/35 mb-1">Sentiment</p>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${
+                feedbackAnalysis.sentiment === "negative"
+                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                  : feedbackAnalysis.sentiment === "neutral"
+                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+              }`}
+            >
+              {feedbackAnalysis.sentiment}
+            </span>
+          </div>
+
+          <div className="text-right">
+            <p className="text-xs text-white/35 mb-1">Severity</p>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${
+                feedbackAnalysis.severity === "high"
+                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                  : feedbackAnalysis.severity === "medium"
+                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+              }`}
+            >
+              {feedbackAnalysis.severity}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs text-white/35 mb-2">Detected Issues</p>
+          <div className="flex flex-wrap gap-2">
+            {feedbackAnalysis.categories.map((category: string) => (
+              <span
+                key={category}
+                className="px-3 py-1 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.1] text-white/70"
+              >
+                {category}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+          <p className="text-xs text-amber-200 leading-relaxed">
+            AI Insight: Students are reporting recurring issues in this meal. Immediate quality checks are recommended before the next serving cycle.
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div className="text-sm text-rose-300">Could not load AI complaint analysis.</div>
     )}
   </GlassCard>
 </motion.div>
